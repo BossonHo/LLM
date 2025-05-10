@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>☁️ 小GPT 聊天室</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #fdfaf6;
+      font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+    }
+
+    .bubble-user {
+      background-color: #b4d8e7;
+      color: #003344;
+    }
+
+    .bubble-bot {
+      background-color: #fff7ed;
+      color: #4b4b4b;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center text-gray-800 transition-colors duration-300">
+  <div class="w-full max-w-2xl bg-white p-6 rounded-2xl shadow-lg border border-[#f1eae0]">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-3xl font-bold">☁️CHAT</h1>
+      <p class="text-sm text-gray-600">👋 歡迎，<span id="username"></span></p>
+      <div class="flex gap-2">
+        <button onclick="clearHistory()" class="text-sm bg-rose-200 hover:bg-rose-300 text-gray-800 px-3 py-1 rounded-full transition">清除紀錄</button>
+        <a href="/logout" class="text-sm bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1 rounded-full transition">登出</a>
+      </div>
+    </div>
+
+    <div id="chat-box" class="h-96 overflow-y-auto scrollbar-hide border border-[#f3ece2] rounded-lg p-4 mb-4 bg-[#fffdf9] space-y-4">
+      <!-- 聊天訊息會加在這裡 -->
+    </div>
+
+    <div class="flex">
+      <input id="user-input" class="flex-1 border border-[#e5dccf] bg-white text-gray-800 rounded-l-full p-2 px-4 focus:outline-none" placeholder="輸入你的問題..." />
+      <button onclick="sendMessage()" class="bg-[#ffd8be] hover:bg-[#ffc7a9] text-gray-800 px-4 rounded-r-full font-semibold transition">送出</button>
+    </div>
+  </div>
+
+  <script>
+    function addMessage(user, bot) {
+      const chatBox = document.getElementById('chat-box');
+      chatBox.innerHTML += `
+        <div class="text-right">
+          <div class="inline-block bubble-user px-4 py-2 rounded-2xl max-w-xs break-words shadow">${user}</div>
+        </div>
+        <div class="text-left">
+          <div class="inline-block bubble-bot px-4 py-2 rounded-2xl max-w-xs break-words shadow">${bot}</div>
+        </div>
+      `;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function loadHistory() {
+      const response = await fetch('/history');
+      const history = await response.json();
+      history.forEach(entry => {
+        addMessage(entry.user, entry.bot);
+      });
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      addMessage(message, "回應中⋯⋯");
+      input.value = '';
+
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await response.json();
+
+      // 替換剛剛的 placeholder
+      const chatBox = document.getElementById('chat-box');
+      chatBox.lastElementChild.innerHTML = `
+        <div class="inline-block bubble-bot px-4 py-2 rounded-2xl max-w-xs break-words shadow">
+          ${data.reply}
+        </div>
+      `;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function clearHistory() {
+      await fetch('/clear', { method: 'POST' });
+      document.getElementById('chat-box').innerHTML = '';
+    }
+
+  window.onload = () => {
+  fetch('/current_user')  
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById('username').innerText = data.username;
+    });
+
+  loadHistory();  // 這是原本載入聊天紀錄
+
+  document.getElementById("user-input").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  });
+};
+  </script>
+</body>
+</html>
