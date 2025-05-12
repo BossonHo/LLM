@@ -1,0 +1,31 @@
+module pulse_synchronizer (
+    input wire clk_a,            // Fast clock A
+    input wire clk_b,            // Slow clock B
+    input wire rst,              // Reset signal
+    input wire data_in,          // Single clock-width pulse in the A domain
+    output reg [1:0] data_out   // Single clock-width pulse in the B domain
+);
+
+    reg sync_1;                  // Synchronize the data_in signal from clk_a to clk_b
+
+    always @(posedge clk_a or posedge rst) begin
+        if (rst) begin
+            sync_1 <= 1'b0;
+        end else begin
+            sync_1 <= data_in;      // First stage synchronizer
+        end
+    end
+
+    always @(posedge clk_b or posedge rst) begin
+        if (rst) begin
+            data_out <= 2'b00;
+        end else begin
+            if (!sync_1 && !data_in) begin
+                data_out <= 2'b11;   // Generate pulse
+            end else begin
+                data_out <= 2'b00;   // Clear pulse after one clock cycle
+            end
+        end
+    end
+
+endmodule
