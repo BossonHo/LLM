@@ -14,7 +14,7 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # --- Ollama API 設定 ---
 OLLAMA_API_URL = "http://localhost:11434/api/generate"  # 根據你的 Ollama 設定
-OLLAMA_MODEL_NAME = "mistral"  # 使用 Llama 2 模型
+OLLAMA_MODEL_NAME = "deepseek-coder-v2:latest"  # 使用 Llama 2 模型
 
 def create_prompt(user_question, results):
     """
@@ -22,7 +22,6 @@ def create_prompt(user_question, results):
     """
     prompt_context = ""
     if results and results['ids']:
-        # 优先选择最相关的范例 (例如，包含 "full adder" 的范例)
         best_example_index = -1
         for i in range(len(results['ids'][0])):
             if "full adder" in results['documents'][0][i].lower():
@@ -32,14 +31,13 @@ def create_prompt(user_question, results):
         if best_example_index != -1:
             instruction = results['documents'][0][best_example_index]
             code = results['metadatas'][0][best_example_index]['code']
-            # 提取 full_adder 模块的代码 (简化)
             full_adder_code_start = code.find("module full_adder")
             full_adder_code_end = code.find("endmodule", full_adder_code_start) + len("endmodule")
             if full_adder_code_start != -1 and full_adder_code_end != -1:
                 code = code[full_adder_code_start:full_adder_code_end]
             prompt_context = f"--- 範例 1 (全加器) ---\nInstruction: {instruction}\nCode:\n```verilog\n{code}\n```\n\n"
         else:
-            # 如果没有找到包含 full adder 的范例，则使用第一个结果
+
             instruction = results['documents'][0][0]
             code = results['metadatas'][0][0]['code']
             prompt_context = f"--- 範例 1 ---\nInstruction: {instruction}\nCode:\n```verilog\n{code}\n```\n\n"
@@ -154,7 +152,7 @@ if __name__ == '__main__':
             print(f"警告：輸入 JSON 檔案中的項目缺少 'Instruction' 鍵。")
 
     # 將結果輸出到 JSON 檔案
-    output_json_file = "mistral_verilog_output.json"
+    output_json_file = "deepseek_verilog_output.json"
     try:
         with open(output_json_file, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=4, ensure_ascii=False)
